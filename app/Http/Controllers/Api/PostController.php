@@ -4,11 +4,21 @@ namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
 use App\Http\Requests\StorePostRequest;
+use App\Http\Resources\PostResource;
 use App\Models\Post;
+use App\Repositories\PostRepository;
+use Exception;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 
 class PostController extends Controller
 {
+    protected PostRepository $postRepository;
+
+    public function __construct(PostRepository $postRepository)
+    {
+        $this->postRepository = $postRepository;
+    }
     /**
      * Display a listing of the resource.
      *
@@ -16,11 +26,12 @@ class PostController extends Controller
      */
     public function index()
     {
-        $post = Post::all();
+        $posts = $this->postRepository->getAllPosts();
 
-        return response()->json([
+        return new PostResource([
             'status' => true,
-            'posts' => $post
+            'data' => $posts,
+            'message' => 'Ok'
         ]);
     }
 
@@ -44,13 +55,28 @@ class PostController extends Controller
     public function store(StorePostRequest $request)
     {
         // dd($request->all());
-        $post = Post::create($request->all());
+        // $post = Post::create($request->all());
 
-        return response()->json([
-            'status' => true,
-            'message' => "Post Created Successfully",
-            'post' => $post
-        ], 200);
+        // return response()->json([
+        //     'status' => true,
+        //     'message' => "Post Created Successfully",
+        //     'post' => $post
+        // ], 200);
+
+        try{
+            DB::beginTransaction();
+            $data = $this->postRepository->addPost($request->all());
+
+            DB::commit();
+            return new PostResource([
+                'status' => true,
+                'data' => $data,
+                'message' => 'Ok'
+            ]);
+        }catch (Exception $e) {
+            DB::rollBack();
+            return $e;
+        }
     }
 
     /**
@@ -61,9 +87,11 @@ class PostController extends Controller
      */
     public function show(Post $post)
     {
-        return response()->json([
+        $posts = $this->postRepository->getSpecificPost($post);
+        return new PostResource([
             'status' => true,
-            'posts' => $post
+            'data' => $posts,
+            'message' => 'Ok'
         ]);
     }
 
