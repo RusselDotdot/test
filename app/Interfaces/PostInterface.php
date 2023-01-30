@@ -7,5 +7,10 @@ interface PostInterface {
 
     public function getSpecificPost($post);
 
-    public function addPost(array $data);
+    public function addPost(array $post);
+
+    public function updatePost($post, array $updatedPost);
+
+    public function deletePost($post);
+
 }

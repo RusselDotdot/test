@@ -27,7 +27,6 @@ class PostController extends Controller
     public function index()
     {
         $posts = $this->postRepository->getAllPosts();
-
         return new PostResource([
             'status' => true,
             'data' => $posts,
@@ -54,15 +53,6 @@ class PostController extends Controller
      */
     public function store(StorePostRequest $request)
     {
-        // dd($request->all());
-        // $post = Post::create($request->all());
-
-        // return response()->json([
-        //     'status' => true,
-        //     'message' => "Post Created Successfully",
-        //     'post' => $post
-        // ], 200);
-
         try{
             DB::beginTransaction();
             $data = $this->postRepository->addPost($request->all());
@@ -75,7 +65,7 @@ class PostController extends Controller
             ]);
         }catch (Exception $e) {
             DB::rollBack();
-            return $e;
+            return $e->getMessage();
         }
     }
 
@@ -87,12 +77,16 @@ class PostController extends Controller
      */
     public function show(Post $post)
     {
-        $posts = $this->postRepository->getSpecificPost($post);
-        return new PostResource([
-            'status' => true,
-            'data' => $posts,
-            'message' => 'Ok'
-        ]);
+        try{
+            $data = $this->postRepository->getSpecificPost($post);
+            return new PostResource([
+                'status' => true,
+                'data' => $data,
+                'message' => 'Ok'
+            ]);
+        }catch(Exception $e){
+            return $e->getMessage();
+        }
     }
 
     /**
@@ -115,13 +109,20 @@ class PostController extends Controller
      */
     public function update(StorePostRequest $request, Post $post)
     {
-        $post->update($request->all());
+        try{
+            Db::beginTransaction();
+            $data = $this->postRepository->updatePost($post, $request->all());
 
-        return response()->json([
-            'status' => true,
-            'message' => "Post Updated Successfully",
-            'post' => $post
-        ], 200);
+            DB::commit();
+            return new PostResource([
+                'status' => true,
+                'data' => $data,
+                'message' => 'Post Updated'
+            ]);
+        }catch(Exception $e){
+            DB::rollBack();
+            return $e->getMessage();
+        }
     }
 
     /**
@@ -132,12 +133,21 @@ class PostController extends Controller
      */
     public function destroy(Post $post)
     {
-        $post->delete();
+        try{
+            DB::beginTransaction();
+            $data = $this->postRepository->getSpecificPost($post);
 
-        return response()->json([
-            'status' => true,
-            'message' => "Post Deleted Successfully",
-            'post' => $post
-        ], 200);
+            DB::commit();
+            $this->postRepository->deletePost($post);
+            
+            return new PostResource([
+                'status' => true,
+                'data' => $data,
+                'message' => 'Post Deleted'
+            ]);
+        }catch(Exception $e){
+            DB::rollBack();
+            return $e->getMessage();
+        }
     }
 }
